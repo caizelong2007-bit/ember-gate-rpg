@@ -13,11 +13,13 @@
 战斗视频通过 assets/videos.json 自动加载。将视频放入 assets/videos/，再在清单的 clips 中配置：
 
 ```json
-{"idle":{"src":"videos/idle.mp4","impact":0.5},"attack":{"src":"videos/attack.mp4","impact":0.47}}
+{"idle":{"src":"videos/idle.mp4?v=1","bytes":1401361,"impact":0.5},"attack":{"src":"videos/attack.mp4?v=1","bytes":1489652,"impact":0.47}}
 ```
 
-clips 支持 idle、attack、fire、guard、ultimate、enemy_attack、enemy_heavy、victory、defeat。src 相对于素材清单地址；impact 为命中时刻占视频总时长的比例。素材自动加载，不需要玩家手动导入。没有可用视频画面时才使用程序占位动画，该占位动画并非 AI 生成视频。
+clips 支持 idle、attack、fire、guard、ultimate、enemy_attack、enemy_heavy、victory、defeat。src 相对于素材清单地址；impact 为命中时刻占视频总时长的比例；bytes 为完整文件字节数，更新视频时须同步更新 bytes 和 src 的版本参数。
 
-视频默认静音并在网页内播放；首次触摸后的播放行为仍取决于手机浏览器。竖屏使用完整视频画面，避免裁掉左右角色。切换时保留上一帧，缺失或失败的片段不会闪回占位动画。
+打开网页后先显示准备进度，以两个并发请求完整下载全部 9 段视频，验证大小后才允许进入战斗。播放使用本地 Blob URL，战斗中无需继续下载视频。可用时使用浏览器 Cache Storage 保存完整文件；存储不可用时仍可使用当前页面的内存副本。失败可重试并复用已完成文件。首次加载约 52 MB，浏览器清理缓存后需要重新下载。
+
+视频默认静音并在网页内播放；全部准备好后自动进入，浏览器阻止自动播放时提供“开始战斗”按钮。竖屏使用完整视频画面，避免裁掉左右角色。切换时保留上一帧，视频显示时停止绘制底下的占位动画。
 
 所有战斗规则在客户端执行，适合单机原型，不包含账号、付费或排行榜。

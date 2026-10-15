@@ -47,6 +47,10 @@ body{height:100vh;height:100dvh;-webkit-text-size-adjust:100%}
 .game-tools{position:absolute;z-index:5;left:50%;top:calc(max(18px,env(safe-area-inset-top)) + 63px);transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:6px}
 .game-tools button{min-width:46px;min-height:34px;border:1px solid #acbfd533;background:#101a2bcc;color:#ccd8e7;border-radius:7px;font-size:11px;padding:5px 10px;touch-action:manipulation}
 .result{padding:max(24px,env(safe-area-inset-top)) max(24px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(24px,env(safe-area-inset-left))}
+.loading-screen{position:absolute;inset:0;z-index:20;display:grid;place-items:center;padding:max(24px,env(safe-area-inset-top)) max(24px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(24px,env(safe-area-inset-left));background:radial-gradient(ellipse at 50% 35%,#28374b 0,#101a2a 47%,#080e18 100%);overflow:auto}
+.loading-screen[hidden]{display:none}
+.loading-card{width:min(100%,380px);text-align:center}.loading-mark{font-size:58px;line-height:1.2;color:#efc17d;text-shadow:0 0 42px #efc17d44;margin-bottom:18px}.loading-eyebrow{color:#efc17d;letter-spacing:5px;font-size:12px;margin:0 0 13px}.loading-card h2{font-weight:500;font-size:25px;letter-spacing:2px}.loading-card p{line-height:1.7}.loading-card #loading-note{font-size:13px;color:#becbdd;margin:12px 0 26px}.loading-meter{height:5px;background:#ffffff16;border-radius:8px;overflow:hidden}.loading-meter i{display:block;width:0;height:100%;background:linear-gradient(90deg,#ba8a51,#f3d79e);transition:width .15s linear}.loading-stats{display:flex;justify-content:space-between;gap:12px;margin-top:10px;font-size:11px;color:#aebed2;font-variant-numeric:tabular-nums}.loading-stats strong{color:#f2ce94;font-weight:500}.loading-card button{margin-top:24px;min-width:140px;min-height:44px}.loading-card .loading-tip{margin:25px 0 0;font-size:11px;color:#7f91a9}
+@media(max-height:430px){.loading-mark{font-size:34px;margin-bottom:6px}.loading-eyebrow{margin-bottom:4px}.loading-card #loading-note{margin:7px 0 14px}.loading-card .loading-tip{margin-top:12px}.loading-card button{margin-top:12px}}
 @media(orientation:portrait){.stage video{object-fit:contain;background:#0c111b}.fighter{max-width:none}.stage .hudbottom{max-width:calc(100% - 200px)}}
 @media(pointer:coarse){.game-tools button{min-height:44px}.primary{min-height:44px}}
 @media(max-height:430px){.hudtop{top:max(12px,env(safe-area-inset-top))}.game-tools{top:75px}.stage .actions{--small:54px;--large:78px;--ultimate:62px;--orbit:91px;width:166px;height:166px;right:max(18px,env(safe-area-inset-right));bottom:max(18px,env(safe-area-inset-bottom))}.stage .skill{gap:1px;padding:3px}.stage .skill .symbol{width:19px;height:19px}.stage .skill[data-skill="attack"] .symbol{width:28px;height:28px}.stage .skill strong{font-size:11px}.stage .skill[data-skill="attack"] strong{font-size:13px}.stage .hudbottom{bottom:19px}.stage .scene-title{font-size:16px}}
@@ -54,7 +58,7 @@ body{height:100vh;height:100dvh;-webkit-text-size-adjust:100%}
 </head>
 <body>
 <main class="shell" id="rpg">
-  <section class="stage" aria-label="战斗画面">
+  <section class="stage" aria-busy="true" aria-label="战斗画面">
     <canvas id="arena" aria-label="破晓者与灰烬守卫在遗迹对峙"></canvas>
     <video id="videoA" muted playsinline webkit-playsinline x5-playsinline="true" preload="auto"></video><video id="videoB" muted playsinline webkit-playsinline x5-playsinline="true" preload="auto"></video>
     <div class="hud">
@@ -74,6 +78,19 @@ body{height:100vh;height:100dvh;-webkit-text-size-adjust:100%}
     <div class="game-tools"><button class="quiet" id="reset" aria-label="重新开始战斗">重开</button><button class="quiet skip" id="skip" hidden>跳过</button></div>
     <p id="status" class="screenreader" role="status" aria-live="polite"></p>
     <div class="result" id="result" hidden><div class="eyebrow" id="result-eyebrow">BATTLE COMPLETE</div><h2 id="result-title">战斗胜利</h2><p id="result-text"></p><button class="primary" id="again">再战一次</button></div>
+    <div class="loading-screen" id="loading-screen" role="dialog" aria-modal="true" aria-labelledby="loading-title">
+      <div class="loading-card">
+        <div class="loading-mark" aria-hidden="true">✦</div>
+        <p class="loading-eyebrow">烬火之门</p>
+        <h2 id="loading-title">准备进入遗迹</h2>
+        <p id="loading-note">正在准备全部战斗画面，完成后自动进入。</p>
+        <div class="loading-meter" id="loading-bar" role="progressbar" aria-label="战斗画面准备进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="loading-fill"></i></div>
+        <div class="loading-stats"><span id="loading-detail">正在获取素材清单…</span><strong id="loading-percent">0%</strong></div>
+        <button class="primary" id="loading-retry" hidden>重新加载</button>
+        <button class="primary" id="loading-start" hidden>开始战斗</button>
+        <p class="loading-tip">首次准备需要一些时间。再次打开会优先使用已缓存的画面。</p>
+      </div>
+    </div>
   </section>
 </main>
 <script>
@@ -102,6 +119,7 @@ const diagnostics={tag:document.createElement('span'),log:document.createElement
 const ui={hero:$('hero-hp'),enemy:$('enemy-hp'),heroBar:$('hero-bar'),enemyBar:$('enemy-bar'),mp:$('mp-label'),mpBar:$('mp-bar'),energy:$('energy-label'),energyBar:$('energy-bar'),status:$('status'),round:$('round'),intent:$('intent'),title:$('scene-title'),note:$('scene-note'),progress:$('scene-progress'),tag:diagnostics.tag,skip:$('skip'),result:$('result'),log:diagnostics.log};
 const buttons=[...document.querySelectorAll('[data-skill]')];
 const clips=new Map();
+let libraryReady=false,gameStarted=false;
 const videos=[$('videoA'),$('videoB')];
 const canvas=$('arena'),ctx=canvas.getContext('2d');
 let state,epoch=0,activePlayback=null,idleVideo=null,scene={key:'idle',p:0,started:performance.now()},messages=[];
@@ -110,7 +128,7 @@ const randomInt=(lo,hi)=>Math.floor(Math.random()*(hi-lo+1))+lo;
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 function addLog(message){messages.unshift(message);messages=messages.slice(0,4);ui.log.replaceChildren(...messages.map(t=>{const p=document.createElement('p');p.textContent=t;return p;}));}
 function floating(text,target='enemy',restore=false){const el=document.createElement('div');el.className='float'+(target==='hero'?' hero-hit':'')+(restore?' restore':'');el.textContent=text;document.querySelector('.stage').append(el);setTimeout(()=>el.remove(),1200);}
-function canAct(key){return state.phase==='player'&&state.hp>0&&state.enemyHp>0&&state.mp>=SKILLS[key].mp&&(key!=='fire'||state.fireCooldown===0)&&(key!=='ultimate'||state.energy===100);}
+function canAct(key){return libraryReady&&gameStarted&&state.phase==='player'&&state.hp>0&&state.enemyHp>0&&state.mp>=SKILLS[key].mp&&(key!=='fire'||state.fireCooldown===0)&&(key!=='ultimate'||state.energy===100);}
 function render(){
   ui.hero.textContent=state.hp+' / 200 HP';ui.enemy.textContent=state.enemyHp+' / 340 HP';
   ui.heroBar.style.width=state.hp/2+'%';ui.enemyBar.style.width=state.enemyHp/3.4+'%';
@@ -133,6 +151,7 @@ function pauseVideos(clear=true){cancelVideoPreparation();videos.forEach(v=>{v.p
 function revealVideo(v){
   // Show the decoded new layer before hiding the old one, in the same task.
   v.classList.add('visible');videos.forEach(other=>{if(other!==v){other.pause();other.classList.remove('visible');}});
+  finishLoadingScreen();
 }
 function prepareVideo(v,source,loop,isCurrent,onReady,onFailure){
   cancelVideoPreparation();const generation=presentationEpoch;
@@ -169,6 +188,7 @@ function prepareVideo(v,source,loop,isCurrent,onReady,onFailure){
   return cancel;
 }
 function showIdle(){
+  if(!gameStarted)return;
   pauseVideos(false);const previous=visibleVideo();
   scene={key:'idle',p:0,started:performance.now()};ui.title.textContent='遗迹对峙';ui.note.textContent='等待你的指令';ui.progress.style.width='0%';
   if(!clips.has('idle')){ui.tag.textContent=previous?'待机未接入 · 保留上一帧':'占位动画';return;}
@@ -181,7 +201,7 @@ function showIdle(){
   ui.tag.textContent=previous?'衔接中 · 保留上一帧':'待机视频准备中';
   prepareVideo(v,source,true,()=>token===epoch&&state.phase==='player'&&idleVideo===v,
     ()=>{ui.tag.textContent='本地视频 · idle';},
-    ()=>{idleVideo=null;ui.tag.textContent=previous?'视频不可用 · 保留上一帧':'视频不可用 · 占位动画';});
+    ()=>{idleVideo=null;ui.tag.textContent=previous?'视频不可用 · 保留上一帧':'视频不可用 · 占位动画';if(!visibleVideo())showStartRetry();});
 }
 // Guarantees one impact and one completion, including skip, errors and restart.
 function playScene(key,onImpact=()=>{}){
@@ -284,6 +304,7 @@ function golem(x,y,scale,lean=0,hurt=0){
   ctx.save();ctx.translate(-77,-94);ctx.rotate(-.28);path([[-6,-3],[6,-3],[7,95],[-6,95]],'#7b6960','#b39b7a');path([[-31,54],[29,54],[41,80],[28,103],[-29,103],[-42,79]],'#454550','#978372',3);path([[-28,69],[26,69],[26,82],[-28,82]],'#b28b61');ctx.restore();ctx.restore();
 }
 function draw(now){
+  if(document.hidden||!gameStarted||visibleVideo()){requestAnimationFrame(draw);return;}
   const box=canvas.getBoundingClientRect(),dpr=Math.min(devicePixelRatio||1,2),w=Math.round(box.width*dpr),h=Math.round(box.height*dpr);
   if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;}
   // Maintain composition while keeping both actors visible on mobile.
@@ -314,24 +335,138 @@ function draw(now){
   if(key==='defeat'){ctx.fillStyle='#0a1420aa';ctx.fillRect(0,0,1100,619);}
   requestAnimationFrame(draw);
 }
+// Download complete files before gameplay. Playback uses local Blob URLs,
+// so media range requests never depend on the connection during a battle.
+const loadingUI={screen:$('loading-screen'),title:$('loading-title'),note:$('loading-note'),bar:$('loading-bar'),fill:$('loading-fill'),percent:$('loading-percent'),detail:$('loading-detail'),retry:$('loading-retry'),start:$('loading-start')};
+const preparedVideos=new Map();
+const VIDEO_CACHE='ember-gate-rpg-complete-videos-v1';
+let preloadBusy=false,preloadController=null;
+
+function finishLoadingScreen(){
+  if(!libraryReady||!gameStarted)return;
+  loadingUI.screen.hidden=true;
+  document.querySelector('.stage').setAttribute('aria-busy','false');
+}
+function showStartRetry(){
+  if(loadingUI.screen.hidden||!libraryReady)return;
+  gameStarted=false;render();
+  loadingUI.title.textContent='战斗画面已就绪';
+  loadingUI.note.textContent='点一下开始战斗，即可播放。';
+  loadingUI.start.hidden=false;loadingUI.start.disabled=false;
+}
+function startPreparedGame(){
+  if(!libraryReady||gameStarted)return;
+  loadingUI.start.disabled=true;loadingUI.retry.hidden=true;
+  loadingUI.title.textContent='正在进入遗迹';
+  loadingUI.note.textContent='全部画面已准备好。';
+  gameStarted=true;reset();
+}
+loadingUI.start.addEventListener('click',startPreparedGame);
+loadingUI.retry.addEventListener('click',loadVideoLibrary);
+
+async function downloadVideo(entry,controller,onBytes,cache){
+  if(cache){
+    try{
+      const cached=await cache.match(entry.url);
+      if(cached?.status===200){
+        const blob=await cached.blob();
+        if(blob.size===entry.bytes){onBytes(blob.size);return blob;}
+        await cache.delete(entry.url);
+      }
+    }catch(error){/* A disabled or full cache must not prevent gameplay. */}
+  }
+  let timer=0;
+  const touch=()=>{clearTimeout(timer);timer=setTimeout(()=>controller.abort(),30000);};
+  try{
+    touch();
+    const response=await fetch(entry.url,{signal:controller.signal});
+    if(response.status!==200)throw Error('Video download failed.');
+    let blob;
+    if(response.body&&typeof response.body.getReader==='function'){
+      const reader=response.body.getReader(),chunks=[];let loaded=0;
+      try{
+        while(true){
+          const {done,value}=await reader.read();
+          if(done)break;
+          chunks.push(value);loaded+=value.byteLength;touch();onBytes(loaded);
+        }
+      }finally{reader.releaseLock();}
+      blob=new Blob(chunks,{type:'video/mp4'});
+    }else{
+      blob=await response.blob();onBytes(blob.size);
+    }
+    if(blob.size!==entry.bytes)throw Error('Incomplete video download.');
+    clearTimeout(timer);
+    if(cache){
+      try{await cache.put(entry.url,new Response(blob,{headers:{'Content-Type':'video/mp4','Content-Length':String(blob.size)}}));}
+      catch(error){/* Keep the complete in-memory video if storage is unavailable. */}
+    }
+    return blob;
+  }finally{clearTimeout(timer);}
+}
+
 async function loadVideoLibrary(){
-  if(location.protocol==='file:')return;
+  if(preloadBusy||libraryReady)return;
+  preloadBusy=true;loadingUI.retry.hidden=true;loadingUI.start.hidden=true;
+  loadingUI.title.textContent='准备进入遗迹';
+  loadingUI.note.textContent='正在准备全部战斗画面，完成后自动进入。';
+  loadingUI.detail.textContent='正在获取素材清单…';
+  const controller=new AbortController();preloadController=controller;
+  let manifestTimer=setTimeout(()=>controller.abort(),30000);
   try{
     const manifestURL=new URL('./assets/videos.json',document.baseURI);
-    const response=await fetch(manifestURL,{cache:'no-cache'});
-    if(!response.ok)return;
-    const manifest=await response.json();
-    for(const [key,item] of Object.entries(manifest.clips||{})){
-      if(!(key in MEDIA)||!item||typeof item.src!=='string')continue;
+    const response=await fetch(manifestURL,{cache:'no-cache',signal:controller.signal});
+    if(!response.ok)throw Error('Video manifest unavailable.');
+    const manifest=await response.json();clearTimeout(manifestTimer);
+    const entries=Object.keys(MEDIA).map(key=>{
+      const item=manifest.clips?.[key];
+      if(!item||typeof item.src!=='string'||!Number.isSafeInteger(item.bytes)||item.bytes<=0)throw Error('Video manifest is incomplete.');
       const url=new URL(item.src,manifestURL);
-      if(url.origin!==location.origin)continue;
-      clips.set(key,url.href);
-      if(typeof item.impact==='number'&&Number.isFinite(item.impact))MEDIA[key].impact=clamp(item.impact,.05,.95);
+      if(url.origin!==location.origin)throw Error('Video origin differs from the game.');
+      return {key,url:url.href,bytes:item.bytes,impact:item.impact};
+    });
+    const totalBytes=entries.reduce((total,entry)=>total+entry.bytes,0);
+    const loadedBytes=new Map(entries.map(entry=>[entry.url,preparedVideos.has(entry.url)?entry.bytes:0]));
+    let lastPaint=0,cache=null;
+    const paint=(force=false)=>{
+      const now=performance.now();if(!force&&now-lastPaint<120)return;lastPaint=now;
+      const loaded=entries.reduce((total,entry)=>total+Math.min(entry.bytes,loadedBytes.get(entry.url)||0),0);
+      const complete=entries.filter(entry=>preparedVideos.has(entry.url)).length;
+      const percent=libraryReady?100:Math.min(99,Math.floor(loaded/totalBytes*100));
+      loadingUI.fill.style.width=percent+'%';loadingUI.percent.textContent=percent+'%';
+      loadingUI.bar.setAttribute('aria-valuenow',String(percent));
+      loadingUI.detail.textContent='已准备 '+complete+' / '+entries.length+' 段 · '+(loaded/1e6).toFixed(1)+' / '+(totalBytes/1e6).toFixed(1)+' MB';
+    };
+    paint(true);
+    try{if('caches' in window)cache=await caches.open(VIDEO_CACHE);}catch(error){/* Use session memory when persistent storage is unavailable. */}
+    const queue=entries.filter(entry=>!preparedVideos.has(entry.url));let next=0;
+    async function worker(){
+      while(next<queue.length&&!controller.signal.aborted){
+        const entry=queue[next++];
+        try{
+          const blob=await downloadVideo(entry,controller,loaded=>{loadedBytes.set(entry.url,loaded);paint();},cache);
+          if(controller.signal.aborted)return;
+          preparedVideos.set(entry.url,{src:URL.createObjectURL(blob),bytes:blob.size});
+          loadedBytes.set(entry.url,entry.bytes);paint(true);
+        }catch(error){controller.abort();throw error;}
+      }
     }
-    if(state.phase==='player'&&clips.has('idle'))showIdle();
-  }catch(error){console.warn('Video library unavailable; using the playable fallback.');}
+    const results=await Promise.allSettled([worker(),worker()]);
+    const failed=results.find(result=>result.status==='rejected');
+    if(failed||controller.signal.aborted||entries.some(entry=>!preparedVideos.has(entry.url)))throw Error('Video preparation interrupted.');
+    for(const entry of entries){
+      clips.set(entry.key,preparedVideos.get(entry.url).src);
+      if(typeof entry.impact==='number'&&Number.isFinite(entry.impact))MEDIA[entry.key].impact=clamp(entry.impact,.05,.95);
+    }
+    libraryReady=true;paint(true);startPreparedGame();
+  }catch(error){
+    controller.abort();loadingUI.title.textContent='素材准备中断';
+    loadingUI.note.textContent='请检查网络后重试，已完成的画面会保留。';
+    loadingUI.retry.hidden=false;loadingUI.retry.disabled=false;
+  }finally{clearTimeout(manifestTimer);preloadBusy=false;if(preloadController===controller)preloadController=null;}
 }
 reset();requestAnimationFrame(draw);loadVideoLibrary();
+
 </script>
 </body>
 </html>
