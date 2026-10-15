@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "clips": {
+    "idle": {
+      "src": "videos/idle.mp4?v=610d12fee0c3",
+      "impact": 0.5,
+      "bytes": 1401361
+    },
+    "attack": {
+      "src": "videos/attack.mp4?v=8b9cffda8f7d",
+      "impact": 0.47,
+      "bytes": 1489652
+    },
+    "fire": {
+      "src": "videos/fire.mp4?v=f8c46884d4a1",
+      "impact": 0.57,
+      "bytes": 7994706
+    },
+    "guard": {
+      "src": "videos/guard.mp4?v=6939b439d421",
+      "impact": 0.45,
+      "bytes": 5651512
+    },
+    "ultimate": {
+      "src": "videos/ultimate.mp4?v=ab5079999b53",
+      "impact": 0.57,
+      "bytes": 6635873
+    },
+    "enemy_attack": {
+      "src": "videos/enemy_attack.mp4?v=b5abe603afc6",
+      "impact": 0.51,
+      "bytes": 6849989
+    },
+    "enemy_heavy": {
+      "src": "videos/enemy_heavy.mp4?v=b4e2cdbcddc9",
+      "impact": 0.62,
+      "bytes": 6740358
+    },
+    "victory": {
+      "src": "videos/victory.mp4?v=a71d7c6ef7cc",
+      "impact": 0.5,
+      "bytes": 7596439
+    },
+    "defeat": {
+      "src": "videos/defeat.mp4?v=cfb7cf8e0d4c",
+      "impact": 0.5,
+      "bytes": 7590427
+    }
+  }
+}
